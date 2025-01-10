@@ -1,5 +1,6 @@
 const net = require('net');
 const crypto = require('crypto');
+const {encryptAES, decryptAES, encryptedRSA, decryptedRSA} = require('./utils');
 
 const host = 'localhost';
 const port = 8080;
@@ -15,6 +16,8 @@ client.connect(port, host, () => {
 
     client.write(`HELLO|${randomHello}`);
 });
+
+let sessionKey;
 
 client.on('data', (data) => {
     const [type, payload] = data.toString().split('|');
@@ -38,25 +41,26 @@ client.on('data', (data) => {
 
             premaster = crypto.randomBytes(48).toString('hex');
             console.log(`Created premaster: ${premaster}`);
-            const encrypted = crypto.publicEncrypt(
-                {
-                    key: publicKey,
-                    padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-                    oaepHash: "sha256",
-                },
-                Buffer.from(premaster, 'utf8')
-            );
+            const encrypted = encryptedRSA(premaster, publicKey);
             client.write(`PREMASTER|${encrypted.toString('base64')}`);
             console.log('Sent premaster secret to server');      
 
-            const sessionKey = crypto.createHash('sha256')
+            sessionKey = crypto.createHash('sha256')
                 .update(clientRandom + serverRandom + premaster)
-                .digest('hex');
+                .digest();
 
-            console.log(`Generate session key: ${sessionKey}`);
-
+            console.log(`Generate session key: ${sessionKey.toString('hex')}`);
+            const ready = `Ready for connection from client`;
+            const encryptedReady = encryptAES(ready, sessionKey);
+            console.log(`Encrypted ready: ${encryptedReady}`);
+            client.write(`READY|${encryptedReady}`);
+            console.log('Sent ready message to server');
             break;
         case 'READY':
+            const decryptedReady = decryptAES(payload, sessionKey);
+            console.log(`Receive from server: ${decryptedReady}`);
+
+            console.log('Connection is set up. Handshaking over');
             break;
         case 'MESSAGE':
             break;

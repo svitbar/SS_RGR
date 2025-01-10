@@ -1,5 +1,6 @@
 const net = require('net');
 const crypto = require('crypto');
+const {encryptAES, decryptAES, encryptedRSA, decryptedRSA} = require('./utils');
 
 const port = 8080;
 
@@ -19,6 +20,7 @@ const server = net.createServer((socket) => {
     console.log('Client connected!');
     let serverRandom;
     let clientRandom;
+    let sessionKey;
 
     socket.on('data', (data) => {
         const [type, payload] = data.toString().split('|');
@@ -35,23 +37,26 @@ const server = net.createServer((socket) => {
                 console.log('Sent server hello and public key');
                 break;
             case 'PREMASTER':
-                const decrypted = crypto.privateDecrypt(
-                    {
-                        key: privateKey,
-                        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-                        oaepHash: "sha256",
-                    },
-                    Buffer.from(payload, 'base64')
-                );
+                const decrypted = decryptedRSA(Buffer.from(payload, 'base64'), privateKey)
                 console.log(`Received premaster from client: ${decrypted}`);
 
-                const sessionKey = crypto.createHash('sha256')
+                sessionKey = crypto.createHash('sha256')
                     .update(clientRandom + serverRandom + decrypted)
-                    .digest('hex');
+                    .digest();
                 
-                console.log(`Generate session key: ${sessionKey}`);
+                console.log(`Generate session key: ${sessionKey.toString('hex')}`);
                 break;
             case 'READY':
+                const decryptedReady = decryptAES(payload, sessionKey);
+                console.log(`Receive from client: ${decryptedReady}`);
+
+                const ready = 'Ready for connection from server';
+                const encryptedReady = encryptAES(ready, sessionKey);
+                console.log(`Encrypted ready: ${encryptedReady}`);
+                socket.write(`READY|${encryptedReady}`);
+                console.log('Sent ready message to client');
+
+                console.log('Connection is set up. Handshaking over');
                 break;
             case 'MESSAGE':
                 break;
