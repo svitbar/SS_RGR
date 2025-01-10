@@ -16,5 +16,9 @@
   "bugs": {
     "url": "https://github.com/svitbar/SS_RGR/issues"
   },
-  "homepage": "https://github.com/svitbar/SS_RGR#readme"
+  "homepage": "https://github.com/svitbar/SS_RGR#readme",
+  "devDependencies": {
+    "crypto": "^1.0.1",
+    "net": "^1.0.2"
+  }
 }
