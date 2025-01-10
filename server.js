@@ -19,13 +19,36 @@ const server = net.createServer((socket) => {
     console.log('Client connected!');  
 
     socket.on('data', (data) => {
-        console.log(`Received data from client: ${data.toString()}`);
+        const [type, payload] = data.toString().split('|');
 
-        const randomHelloServer = crypto.randomBytes(8).toString('hex');
-        const serverHello = `Server hello: ${randomHelloServer} Public Key:\n${publicKey}`;
-        console.log('Sent server hello and public key')
+        switch(type) {
+            case 'HELLO':
+                console.log(`Received hello from client: ${payload.toString()}`);
 
-        socket.write(serverHello);
+                const randomHelloServer = crypto.randomBytes(8).toString('hex');
+                const serverHello = `HELLO|Server hello: ${randomHelloServer} Public Key:\n${publicKey}`;
+        
+                socket.write(serverHello);
+                console.log('Sent server hello and public key');
+                break;
+            case 'PREMASTER':
+                const decrypted = crypto.privateDecrypt(
+                    {
+                        key: privateKey,
+                        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+                        oaepHash: "sha256",
+                    },
+                    Buffer.from(payload, 'base64')
+                );
+                console.log(`Received premaster from client: ${decrypted}`);
+                break;
+            case 'READY':
+                break;
+            case 'MESSAGE':
+                break;
+            default:
+                console.log(`Unexpected request: ${data}`);
+        }
     });
   
     socket.on('end', () => {
