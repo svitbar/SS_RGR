@@ -59,6 +59,8 @@ const server = net.createServer((socket) => {
                 console.log('Connection is set up. Handshaking over');
                 break;
             case 'MESSAGE':
+                const decryptedMes = decryptAES(payload, sessionKey);
+                console.log(`Receive from client: ${decryptedMes}`);
                 break;
             default:
                 console.log(`Unexpected request: ${data}`);

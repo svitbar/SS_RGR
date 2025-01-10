@@ -61,6 +61,11 @@ client.on('data', (data) => {
             console.log(`Receive from server: ${decryptedReady}`);
 
             console.log('Connection is set up. Handshaking over');
+
+            const mes = `Message from client!`;
+            const encryptedMes = encryptAES(mes, sessionKey);
+            client.write(`MESSAGE|${encryptedMes}`);
+            console.log('Sent message to server');
             break;
         case 'MESSAGE':
             break;
