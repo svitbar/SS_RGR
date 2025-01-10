@@ -10,9 +10,18 @@ client.connect(port, host, () => {
   console.log('Connected to server!');
 
     const randomHello = crypto.randomBytes(8).toString('hex');
-    console.log(`Client hello: ${randomHello}`);
+    console.log(`Sent client hello`);
 
     client.write(randomHello);
+});
+
+client.on('data', (data) => {
+    const serverResponse = data.toString();
+    console.log(`Received data from server: ${serverResponse}`);
+
+    if (serverResponse.includes('Public Key:')) {
+        const publicKey = serverResponse.split('Public Key:')[1].trim();
+    }
 });
 
 client.on('end', () => {
