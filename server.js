@@ -16,7 +16,9 @@ const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
 });
 
 const server = net.createServer((socket) => {
-    console.log('Client connected!');  
+    console.log('Client connected!');
+    let serverRandom;
+    let clientRandom;
 
     socket.on('data', (data) => {
         const [type, payload] = data.toString().split('|');
@@ -24,9 +26,10 @@ const server = net.createServer((socket) => {
         switch(type) {
             case 'HELLO':
                 console.log(`Received hello from client: ${payload.toString()}`);
+                clientRandom = payload.toString();
 
-                const randomHelloServer = crypto.randomBytes(8).toString('hex');
-                const serverHello = `HELLO|Server hello: ${randomHelloServer} Public Key:\n${publicKey}`;
+                serverRandom = crypto.randomBytes(8).toString('hex');
+                const serverHello = `HELLO|Server hello: ${serverRandom} Public Key:\n${publicKey}`;
         
                 socket.write(serverHello);
                 console.log('Sent server hello and public key');
@@ -41,6 +44,12 @@ const server = net.createServer((socket) => {
                     Buffer.from(payload, 'base64')
                 );
                 console.log(`Received premaster from client: ${decrypted}`);
+
+                const sessionKey = crypto.createHash('sha256')
+                    .update(clientRandom + serverRandom + decrypted)
+                    .digest('hex');
+                
+                console.log(`Generate session key: ${sessionKey}`);
                 break;
             case 'READY':
                 break;
